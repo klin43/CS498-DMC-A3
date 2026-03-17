@@ -1,2 +1,29 @@
 Part 1
-1. For this dataset, I think the row key should be 
+1. A row key is an unique identifier for a single row in a Bigtable table. For this dataset, my proposed row key is CITY#MAKE#VIN. Hotspotting occurs when the majority of the read/write requests are directed to the same node, while other nodes are idle. This causes high latency and performance issues. This row key avoids that by using high cardinality prefixes. “City” and “Make” both have hundreds of distinct values, so rows can be distributed evenly across nodes rather than concentrating on a few nodes. For example, “City” has 100+ unique values, while “State” only has 50, so “City” has a higher cardinality. If we use “State” as a row key prefix, the data would be distributed across 50 nodes. In a dataset with 200,000+ EV records, there’s a risk that the majority of the data belongs to one state. In the worst case, all rows map to the same node, leading to uneven distribution and increased workload on one node, which we want to avoid. 
+
+For querying vehicles by “City”, “City” is the first prefix in the row key, so we can directly access the tablet range. This means we can find all vehicles in a specific city without needing to scan the entire table. This allows for very efficient queries. For querying vehicles by “Make”, it’s less efficient because “Make” is the second prefix for the row key. Queries will first narrow down to a specific city, then filter by “Make” within that range. This row key prioritizes fast lookups to find vehicles of a specific Make within a given City. 
+
+2. 
+vehicle_info 
+- VIN (1-10)
+- Model Year
+- Make
+- Model
+- DOL Vehicle ID
+
+location 
+- County
+- City
+- State
+- Postal Code
+
+ev_info 
+- Electric Vehicle Type
+-  Clean Alternative Fuel Vehicle (CAFV) Eligibility
+- Electric Range
+- Electric Utility
+
+For this dataset, I grouped the columns into 3 column families: vehicle_info, location, and ev_info. vehicle_info includes attributes you need when looking up a specific vehicle (ie. VIN, Make, Model). location includes attributes for geographic based queries (ie. City, County, State). ev_info includes attributes that identify the capabilities of a specific EV (ie. Electric Vehicle Type and CAFV eligibility). This aids in distributed read performance because Bigtable stores each column family in a separate SSTable. So if a query is looking for a specific vehicle, Bigtable only reads the vehicle_info SSTable, and skips location and ev_info. This means rather than scanning all columns for the necessary information, we only need to scan the relevant column family. This reduces the amount of data needed to be scanned for a query, making reads more efficient. 
+
+3. Using VIN as the hashed shard key means each row is distributed evenly across nodes. This means cluster performance is good because there’s a low risk for hotspotting, allowing for low latency and high scalability. However, query routing is inefficient for range-based scans. If you query for all 2018 vehicles, Bigtable needs to scan through every node to find matching rows. Using Model Year as the range-based shard key means that rows are kept in a sorted order based on key-value. This means that query routing for range-based queries is very efficient. If you query for all 2018 vehicles, all the matching rows are already on one node, so Bigtable can directly access the node and output the result. However, cluster performance is poor because there’s a risk for hotspotting. 
+
