@@ -39,7 +39,7 @@ def count_tesla():
 def count_bmw():
     secondary_collection = collection.with_options(
         write_concern=WriteConcern(w=1),
-        read_preference=ReadPreference.SECONDARY)
+        read_preference=ReadPreference.SECONDARY_PREFERRED)
     count = secondary_collection.count_documents({"Make": "BMW"})
     return jsonify({"count": count})
 
