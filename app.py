@@ -32,7 +32,7 @@ def count_tesla():
     primary_collection = collection.with_options(
         write_concern=WriteConcern(w="majority"),
         read_preference=ReadPreference.PRIMARY)
-    count = primary_collection.count_documents({"Make": "Tesla"})
+    count = primary_collection.count_documents({"Make": "TESLA"})
     return jsonify({"count": count})
 
 @app.route("/count-bmw-secondary", methods=["GET"])
