@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 from pymongo import MongoClient
 from pymongo.write_concern import WriteConcern
-from pymongo.read_preferences import ReadPreference
+from pymongo.read_preference import ReadPreference
 
 app = Flask(__name__)
 
@@ -13,7 +13,8 @@ collection = db["vehicles"]
 def insert_fast():
     data = request.json
     fast_collection = collection.with_options(
-        write_concern=WriteConcern(w=1))
+        write_concern=WriteConcern(w=1),
+        read_preference=ReadPreference.PRIMARY)
     result = fast_collection.insert_one(data)
     return jsonify({"id": str(result.inserted_id)})
 
@@ -21,19 +22,24 @@ def insert_fast():
 def insert_safe():
     data = request.json
     safe_collection = collection.with_options(
-        write_concern=WriteConcern(w="majority"))
+        write_concern=WriteConcern(w="majority"),
+        read_preference=ReadPreference.PRIMARY)
     result = safe_collection.insert_one(data)
     return jsonify({"id": str(result.inserted_id)})
 
 @app.route("/count-tesla-primary", methods=["GET"])
 def count_tesla():
-    primary_collection = collection.with_options(read_preference=ReadPreference.PRIMARY)
+    primary_collection = collection.with_options(
+        write_concern=WriteConcern(w="majority"),
+        read_preference=ReadPreference.PRIMARY)
     count = primary_collection.count_documents({"Make": "TESLA"})
     return jsonify({"count": count})
 
 @app.route("/count-bmw-secondary", methods=["GET"])
 def count_bmw():
-    secondary_collection = collection.with_options(read_preference=ReadPreference.SECONDARY)
+    secondary_collection = collection.with_options(
+        write_concern=WriteConcern(w=1),
+        read_preference=ReadPreference.SECONDARY)
     count = secondary_collection.count_documents({"Make": "BMW"})
     return jsonify({"count": count})
 
