@@ -1,0 +1,10 @@
+For all write and read preferences I referenced the requirements for each scenario. 
+
+1. I chose WriteConcern(w=1) to prioritize speed. This means that write operations will be fast because the system doesn’t need to wait for multiple nodes to confirm the write. However, this risks data loss if the primary crashes before the data is replicated to other nodes. WriteConcern(w=1) and ReadPreference.PRIMARY will ensure low latency and high performance, but will have low durability. 
+
+2. I chose WriteConcern(w="majority") to prioritize high durability. This means that writes are considered successful if the majority of the replica set nodes have acknowledged it. However, this will be slower compared to w=1 because the system has to wait for multiple nodes to acknowledge, but this reduces the risk of data loss. So even if the primary node fails, the data is replicated to other nodes and can be recovered. WriteConcern(w="majority") and ReadPreference.PRIMARY will ensure high durability, but will have high latency. 
+
+3. I chose ReadPreference.PRIMARY to ensure strong consistency. This means that all reads are completed in the primary node. Reading from the primary node guarantees that the user is getting the most recent data, but reading from the primary will cause low performance and high latency. WriteConcern(w="majority") and ReadPreference.PRIMARY will ensure strong consistency (accuracy), but will have low performance. 
+
+4. I chose ReadPreference.SECONDARY_PREFERRED to ensure high availability and eventual consistency. This means that the system will try to read from the secondary node first, but if it fails, will read from the primary. This will help reduce the load on the primary node and improve performance, however this risks slightly stale data.
+
